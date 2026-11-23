@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { supabase } from "../../lib/supabase";
 
 const MINIMO_SENHA = 6;
 
@@ -8,18 +9,28 @@ function emailEhValido(email) {
 
 export function LoginCadastro() {
   const [modoCadastro, setModoCadastro] = useState(false);
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
-  const [mostrarSenha, setMostrarSenha] = useState(false);
-  const [mensagem, setMensagem] = useState(null);
+  let [nome, setNome] = useState("");
+  let [email, setEmail] = useState("");
+  let [senha, setSenha] = useState("");
+  let [mostrarSenha, setMostrarSenha] = useState(false);
+  let [mensagem, setMensagem] = useState(null);
 
-  function handleSubmit(event) {
+  async function handleSubmit(event) {
     event.preventDefault();
 
-    const emailLimpo = email.trim();
-    const senhaLimpa = senha.trim();
+    nome = nome.trim();
+    email = email.trim();
+    senha = senha.trim();
 
-    if (!emailLimpo || !senhaLimpa) {
+    if (modoCadastro && !nome) {
+      setMensagem({
+        tipo: "erro",
+        texto: "Informe seu nome completo!",
+      });
+      return;
+    }
+
+    if (!email || !senha) {
       setMensagem({
         tipo: "erro",
         texto: "Preencha o e-mail e a senha para continuar!",
@@ -27,7 +38,7 @@ export function LoginCadastro() {
       return;
     }
 
-    if (!emailEhValido(emailLimpo)) {
+    if (!emailEhValido(email)) {
       setMensagem({
         tipo: "erro",
         texto: "Digite um e-mail válido!",
@@ -35,7 +46,7 @@ export function LoginCadastro() {
       return;
     }
 
-    if (senhaLimpa.length < MINIMO_SENHA) {
+    if (senha.length < MINIMO_SENHA) {
       setMensagem({
         tipo: "erro",
         texto: `A senha deve ter pelo menos ${MINIMO_SENHA} caracteres.`,
@@ -43,11 +54,45 @@ export function LoginCadastro() {
       return;
     }
 
+    // CADASTRO
+    if (modoCadastro) {
+      const { data, error } = await supabase.auth.signUp({
+        email: email,
+        password: senha,
+        options: {
+          data: {
+            nome: nome
+          }
+        }
+      });
+
+      if (error) {
+        setMensagem({ tipo: "erro", texto: error.message });
+        return;
+      }
+
+      setMensagem({
+        tipo: "sucesso",
+        texto: "Cadastro realizado! Verifique seu e-mail para confirmar a conta."
+      });
+
+      return;
+    }
+
+    // LOGIN
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: email,
+      password: senha
+    });
+
+    if (error) {
+      setMensagem({ tipo: "erro", texto: error.message });
+      return;
+    }
+
     setMensagem({
       tipo: "sucesso",
-      texto: modoCadastro
-        ? `Conta simulada criada para ${emailLimpo}.`
-        : `Login simulado para ${emailLimpo}.`,
+      texto: "Login realizado com sucesso!"
     });
   }
 
@@ -59,6 +104,7 @@ export function LoginCadastro() {
   return (
     <main className="min-h-dvh flex flex-col items-center bg-slate-300 px-3 py-6 text-slate-900">
       <div className="w-full max-w-[448px] rounded-3xl bg-slate-50 px-4 pt-7 pb-8 shadow-xl">
+
         {/* Logo e identidade do TaAnotado */}
         <div className="mx-auto mb-3 grid h-[72px] w-[72px] place-items-center rounded-[20px] bg-gradient-to-br from-blue-600 to-violet-600 shadow-[0_6px_16px_rgba(37,99,235,0.3)]">
           <svg
@@ -89,9 +135,33 @@ export function LoginCadastro() {
         {/* Card do formulário */}
         <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
           <form onSubmit={handleSubmit} className="flex flex-col" noValidate>
+
+            {/* Campo nome: aparece somente no cadastro */}
+            {modoCadastro && (
+              <>
+                <label
+                  htmlFor="nome-login"
+                  className="mb-1.5 block text-sm font-semibold text-slate-900"
+                >
+                  Nome completo
+                </label>
+                <input
+                  id="nome-login"
+                  type="text"
+                  placeholder="Digite seu nome completo"
+                  value={nome}
+                  onChange={(e) => {
+                    setNome(e.target.value);
+                    if (mensagem) setMensagem(null);
+                  }}
+                  className="h-12 w-full rounded-xl border-[1.5px] border-slate-300 bg-white px-3.5 text-base font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none"
+                />
+              </>
+            )}
+
             <label
               htmlFor="email-login"
-              className="mb-1.5 block text-sm font-semibold text-slate-900"
+              className="mb-1.5 mt-3.5 block text-sm font-semibold text-slate-900"
             >
               E-mail
             </label>
@@ -113,6 +183,7 @@ export function LoginCadastro() {
             >
               Senha
             </label>
+
             <div className="relative flex items-center">
               <input
                 id="senha-login"
@@ -124,6 +195,7 @@ export function LoginCadastro() {
                 }}
                 className="h-12 w-full rounded-xl border-[1.5px] border-slate-300 bg-white pr-12 pl-3.5 text-base font-medium text-slate-900 placeholder:text-slate-400 focus:border-blue-600 focus:outline-none"
               />
+
               <button
                 type="button"
                 onClick={() => setMostrarSenha((prev) => !prev)}
@@ -186,11 +258,10 @@ export function LoginCadastro() {
             {mensagem && (
               <p
                 role="status"
-                className={`mb-4 rounded-xl px-3.5 py-2.5 text-sm font-medium ${
-                  mensagem.tipo === "erro"
-                    ? "bg-red-50 text-red-700"
-                    : "bg-emerald-50 text-emerald-700"
-                }`}
+                className={`mb-4 rounded-xl px-3.5 py-2.5 text-sm font-medium ${mensagem.tipo === "erro"
+                  ? "bg-red-50 text-red-700"
+                  : "bg-emerald-50 text-emerald-700"
+                  }`}
               >
                 {mensagem.texto}
               </p>
@@ -198,9 +269,8 @@ export function LoginCadastro() {
 
             <button
               type="submit"
-              className={`${
-                modoCadastro ? "mt-5" : ""
-              } h-[52px] w-full cursor-pointer rounded-xl bg-blue-600 text-base font-bold text-white transition-colors hover:bg-blue-700 active:bg-blue-800`}
+              className={`${modoCadastro ? "mt-5" : ""
+                } h-[52px] w-full cursor-pointer rounded-xl bg-blue-600 text-base font-bold text-white transition-colors hover:bg-blue-700 active:bg-blue-800`}
             >
               {modoCadastro ? "CRIAR CONTA" : "ENTRAR"}
             </button>
