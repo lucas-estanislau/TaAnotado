@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 export default function CustomerForm() {
   const navigate = useNavigate()
@@ -9,7 +10,7 @@ export default function CustomerForm() {
   const [observacoes, setObservacoes] = useState('')
   const [erroNome, setErroNome] = useState('')
 
-  function handleSalvar(e) {
+  async function handleSalvar(e) {
     e.preventDefault()
 
     if (!nome.trim()) {
@@ -19,10 +20,35 @@ export default function CustomerForm() {
 
     setErroNome('')
 
-    // TODO: Integrar o cadastro de clientes ao Supabase
-    // após a configuração do banco de dados.
+    const { data, error } = await supabase.auth.getUser()
 
-    alert('Formulário validado com sucesso!')
+    if (error || !data?.user) {
+      alert('Você precisa estar autenticado.')
+      return
+    }
+
+    const { error: insertError } = await supabase
+      .from('customers')
+      .insert([
+        {
+          owner_id: data.user.id,
+          name: nome.trim(),
+          phone: telefone.trim() || null,
+          notes: observacoes.trim() || null
+        }
+      ])
+
+    if (insertError) {
+      console.error(insertError.message)
+      alert('Erro ao cadastrar cliente.')
+      return
+    }
+
+    alert('Cliente cadastrado com sucesso!')
+
+    setNome('')
+    setTelefone('')
+    setObservacoes('')
   }
 
   return (
@@ -59,11 +85,10 @@ export default function CustomerForm() {
             placeholder="Digite o nome do cliente"
             aria-invalid={!!erroNome}
             aria-describedby={erroNome ? 'erro-nome' : undefined}
-            className={`w-full border rounded-lg p-3 ${
-              erroNome
+            className={`w-full border rounded-lg p-3 ${erroNome
                 ? 'border-red-500'
                 : 'border-slate-300'
-            }`}
+              }`}
           />
 
           {erroNome && (
