@@ -12,10 +12,21 @@ import NotFound from './pages/NotFound'
 import BottomNav from './components/BottomNav'
 import ProtectedRoute from './components/ProtectedRoute'
 
+const ROUTES_WITH_BOTTOM_NAV = [
+  '/home',
+  '/new-debt',
+  '/receive-payment',
+  '/customers',
+  '/customers/new',
+  '/customers/edit',
+  '/customers/detail',
+  '/metrics',
+]
+
 function AppLayout() {
   const location = useLocation()
-  // Esconde a barra inferior apenas na tela de Login
-  const showBottomNav = location.pathname !== '/login'
+  // Exibe a barra inferior apenas nas telas internas válidas (oculta no Login e no 404)
+  const showBottomNav = ROUTES_WITH_BOTTOM_NAV.includes(location.pathname)
 
   return (
     <div className="min-h-screen bg-slate-200 flex justify-center">
