@@ -1,5 +1,6 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Plus, DollarSign, ChevronRight, ArrowUp, ArrowDown } from 'lucide-react'
+import { supabase } from '../lib/supabase'
 
 // Dados fictícios temporários (baseados no seu protótipo) antes de conectar ao Supabase
 const RECENT_TRANSACTIONS = [
@@ -27,6 +28,13 @@ const RECENT_TRANSACTIONS = [
 ]
 
 export default function Home() {
+  const navigate = useNavigate()
+
+  async function handleLogout() {
+    await supabase.auth.signOut()
+    navigate('/login', { replace: true })
+  }
+
   return (
     <div className="min-h-screen bg-slate-50">
       {/* 1. Cabeçalho superior */}
@@ -34,12 +42,13 @@ export default function Home() {
         <span className="text-blue-600 text-xl font-extrabold tracking-tight">
           TaAnotado
         </span>
-        <Link
-          to="/login"
-          className="text-slate-500 hover:text-slate-700 text-sm font-semibold"
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="text-slate-500 hover:text-slate-700 text-sm font-semibold cursor-pointer"
         >
           Sair
-        </Link>
+        </button>
       </header>
 
       {/* Conteúdo principal */}

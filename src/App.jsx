@@ -8,7 +8,9 @@ import Customers from './pages/Customers'
 import CustomerForm from './pages/CustomerForm'
 import CustomerDetail from './pages/CustomerDetail'
 import Metrics from './pages/Metrics'
+import NotFound from './pages/NotFound'
 import BottomNav from './components/BottomNav'
+import ProtectedRoute from './components/ProtectedRoute'
 
 function AppLayout() {
   const location = useLocation()
@@ -20,17 +22,21 @@ function AppLayout() {
       {/* pb-[92px] evita que o conteúdo final da tela fique escondido atrás do menu fixo */}
       <div className={`w-full max-w-[448px] min-h-screen bg-slate-50 shadow-lg relative ${showBottomNav ? 'pb-[92px]' : ''}`}>
         <Routes>
-          <Route path="/" element={<Navigate to="/home" replace />} />
-
           <Route path="/login" element={<Login />} />
-          <Route path="/home" element={<Home />} />
-          <Route path="/new-debt" element={<NewDebt />} />
-          <Route path="/receive-payment" element={<ReceivePayment />} />
-          <Route path="/customers" element={<Customers />} />
-          <Route path="/customers/new" element={<CustomerForm />} />
-          <Route path="/customers/edit" element={<CustomerForm />} />
-          <Route path="/customers/detail" element={<CustomerDetail />} />
-          <Route path="/metrics" element={<Metrics />} />
+
+          <Route element={<ProtectedRoute />}>
+            <Route path="/" element={<Navigate to="/home" replace />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/new-debt" element={<NewDebt />} />
+            <Route path="/receive-payment" element={<ReceivePayment />} />
+            <Route path="/customers" element={<Customers />} />
+            <Route path="/customers/new" element={<CustomerForm />} />
+            <Route path="/customers/edit" element={<CustomerForm />} />
+            <Route path="/customers/detail" element={<CustomerDetail />} />
+            <Route path="/metrics" element={<Metrics />} />
+          </Route>
+
+          <Route path="*" element={<NotFound />} />
         </Routes>
 
         {showBottomNav && <BottomNav />}

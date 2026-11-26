@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../lib/supabase";
 
@@ -17,6 +17,14 @@ export default function Login() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   const [mensagem, setMensagem] = useState(null);
   const [carregando, setCarregando] = useState(false);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        navigate("/home", { replace: true });
+      }
+    });
+  }, [navigate]);
 
   async function handleSubmit(event) {
     event.preventDefault();
