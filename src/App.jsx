@@ -11,22 +11,22 @@ import Metrics from './pages/Metrics'
 import NotFound from './pages/NotFound'
 import BottomNav from './components/BottomNav'
 import ProtectedRoute from './components/ProtectedRoute'
+import { AppDataProvider } from './contexts/AppDataContext'
 
-const ROUTES_WITH_BOTTOM_NAV = [
-  '/home',
-  '/new-debt',
-  '/receive-payment',
-  '/customers',
-  '/customers/new',
-  '/customers/edit',
-  '/customers/detail',
-  '/metrics',
-]
+const ROUTES_WITHOUT_BOTTOM_NAV = ['/login']
 
 function AppLayout() {
   const location = useLocation()
-  // Exibe a barra inferior apenas nas telas internas válidas (oculta no Login e no 404)
-  const showBottomNav = ROUTES_WITH_BOTTOM_NAV.includes(location.pathname)
+  // Esconde a barra no Login; exibe nas rotas válidas e no detalhe dinâmico do cliente
+  const isInternalRoute =
+    location.pathname === '/' ||
+    location.pathname.startsWith('/home') ||
+    location.pathname.startsWith('/customers') ||
+    location.pathname.startsWith('/new-debt') ||
+    location.pathname.startsWith('/receive-payment') ||
+    location.pathname.startsWith('/metrics')
+
+  const showBottomNav = !ROUTES_WITHOUT_BOTTOM_NAV.includes(location.pathname) && isInternalRoute
 
   return (
     <div className="min-h-screen bg-slate-200 flex justify-center">
@@ -43,7 +43,9 @@ function AppLayout() {
             <Route path="/customers" element={<Customers />} />
             <Route path="/customers/new" element={<CustomerForm />} />
             <Route path="/customers/edit" element={<CustomerForm />} />
+            <Route path="/customers/:id/editar" element={<CustomerForm />} />
             <Route path="/customers/detail" element={<CustomerDetail />} />
+            <Route path="/customers/:id" element={<CustomerDetail />} />
             <Route path="/metrics" element={<Metrics />} />
           </Route>
 
@@ -59,7 +61,9 @@ function AppLayout() {
 function App() {
   return (
     <BrowserRouter>
-      <AppLayout />
+      <AppDataProvider>
+        <AppLayout />
+      </AppDataProvider>
     </BrowserRouter>
   )
 }

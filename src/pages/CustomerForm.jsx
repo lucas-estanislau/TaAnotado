@@ -1,17 +1,21 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft, UserPlus } from 'lucide-react'
-import { supabase } from '../lib/supabase'
+import { useAppData } from '../contexts/useAppData'
 
 export default function CustomerForm() {
   const navigate = useNavigate()
-  const [nome, setNome] = useState('')
-  const [telefone, setTelefone] = useState('')
-  const [observacoes, setObservacoes] = useState('')
-  const [erroNome, setErroNome] = useState('')
-  const [salvando, setSalvando] = useState(false)
+  const { id } = useParams()
+  const { customers, addCustomer, updateCustomer } = useAppData()
 
-  async function handleSalvar(e) {
+  const clienteExistente = id ? customers.find((c) => c.id === Number(id)) : null
+
+  const [nome, setNome] = useState(clienteExistente?.name || '')
+  const [telefone, setTelefone] = useState(clienteExistente?.phone || '')
+  const [observacoes, setObservacoes] = useState(clienteExistente?.notes || '')
+  const [erroNome, setErroNome] = useState('')
+
+  function handleSalvar(e) {
     e.preventDefault()
 
     if (!nome.trim()) {
@@ -20,38 +24,21 @@ export default function CustomerForm() {
     }
 
     setErroNome('')
-    setSalvando(true)
 
-    try {
-      const { data, error } = await supabase.auth.getUser()
-
-      if (error || !data?.user) {
-        alert('Você precisa estar autenticado.')
-        navigate('/login')
-        return
-      }
-
-      const { error: insertError } = await supabase
-        .from('customers')
-        .insert([
-          {
-            owner_id: data.user.id,
-            name: nome.trim(),
-            phone: telefone.trim() || null,
-            notes: observacoes.trim() || null
-          }
-        ])
-
-      if (insertError) {
-        console.error(insertError.message)
-        alert('Erro ao cadastrar cliente.')
-        return
-      }
-
-      alert('Cliente cadastrado com sucesso!')
-      navigate('/customers')
-    } finally {
-      setSalvando(false)
+    if (clienteExistente) {
+      updateCustomer(clienteExistente.id, {
+        name: nome,
+        phone: telefone,
+        notes: observacoes,
+      })
+      navigate(`/customers/${clienteExistente.id}`)
+    } else {
+      const novo = addCustomer({
+        name: nome,
+        phone: telefone,
+        notes: observacoes,
+      })
+      navigate(`/customers/${novo.id}`)
     }
   }
 
@@ -60,7 +47,7 @@ export default function CustomerForm() {
       {/* Botão de voltar */}
       <button
         type="button"
-        onClick={() => navigate('/customers')}
+        onClick={() => navigate(-1)}
         className="flex items-center gap-2 text-sm font-semibold text-slate-500 hover:text-slate-700 cursor-pointer mb-6"
       >
         <ArrowLeft size={20} />
@@ -75,15 +62,17 @@ export default function CustomerForm() {
       {/* Cabeçalho */}
       <header className="text-center">
         <h1 className="text-[28px] font-extrabold leading-tight tracking-tight text-slate-900">
-          Novo cliente
+          {clienteExistente ? 'Editar cliente' : 'Novo cliente'}
         </h1>
         <p className="mt-1 mb-7 text-sm text-slate-500">
-          Cadastre um cliente para controlar suas compras fiadas.
+          {clienteExistente
+            ? 'Atualize os dados cadastrais do seu cliente.'
+            : 'Cadastre um cliente para controlar suas compras fiadas.'}
         </p>
       </header>
 
       {/* Formulário */}
-      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-[0_1px_2px_rgba(15,23,42,0.05)]">
+      <section className="rounded-xl border border-slate-200 bg-white p-5 shadow-xs">
         <form noValidate onSubmit={handleSalvar} className="flex flex-col">
           {/* Nome completo */}
           <label
@@ -103,7 +92,6 @@ export default function CustomerForm() {
             placeholder="Digite o nome do cliente"
             aria-required="true"
             aria-invalid={!!erroNome}
-            aria-describedby={erroNome ? 'erro-nome' : undefined}
             className={`h-12 w-full rounded-xl border-[1.5px] bg-white px-3.5 text-base font-medium text-slate-900 placeholder:text-slate-400 focus:outline-none ${
               erroNome
                 ? 'border-red-500'
@@ -153,16 +141,15 @@ export default function CustomerForm() {
           {/* Botão de salvar */}
           <button
             type="submit"
-            disabled={salvando}
-            className="mt-5 h-[52px] w-full cursor-pointer rounded-xl bg-blue-600 text-base font-bold text-white transition-colors hover:bg-blue-700 active:bg-blue-800 disabled:opacity-50"
+            className="mt-5 h-[52px] w-full cursor-pointer rounded-xl bg-blue-600 text-base font-bold text-white transition-colors hover:bg-blue-700 active:bg-blue-800"
           >
-            {salvando ? 'SALVANDO...' : 'SALVAR CLIENTE'}
+            {clienteExistente ? 'SALVAR ALTERAÇÕES' : 'SALVAR CLIENTE'}
           </button>
 
           {/* Botão de cancelar */}
           <button
             type="button"
-            onClick={() => navigate('/customers')}
+            onClick={() => navigate(-1)}
             className="mt-[18px] cursor-pointer text-center text-sm font-semibold text-slate-500 hover:text-slate-700"
           >
             Cancelar
